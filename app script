@@ -1,0 +1,52 @@
+/**
+ * AMAZON INDIA 2026 PROFIT ENGINE (MASTER SCRIPT)
+ * * @author Aditya Kumar Dangi
+ * @description Automates fee calculation for Amazon India 2026 slabs.
+ * Features: Multi-mode logistics support, automated volumetric weight calculation, 
+ * and real-time margin forecasting.
+ */
+
+/**
+ * Creates a custom menu in the Google Sheets UI.
+ */
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('🚀 AMAZON ENGINE')
+    .addItem('Run Engine Now', 'startEngine')
+    .addToUi();
+}
+
+/**
+ * Main execution engine to inject formulas and calculate profitability.
+ */
+function startEngine() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getActiveSheet(); 
+  
+  // Dynamically find the last row with data in Column A
+  const lastRow = sheet.getRange("A:A").getValues().filter(String).length;
+  
+  if (lastRow < 2) {
+    ss.toast("No data found to process.", "Error");
+    return;
+  }
+  
+  const rangeStr = "2:" + lastRow;
+
+  // 1. DIMENSIONAL & WEIGHT LOGIC
+  // I: Volumetric Weight, J: Chargeable Weight (Max of Dead vs Volumetric)
+  sheet.getRange("I" + rangeStr).setFormula("=(F2*G2*H2)/5000");
+  sheet.getRange("J" + rangeStr).setFormula("=CEILING(MAX(E2, I2), 0.5)");
+
+  // 2. REFERRAL FEES (2026 Slabs)
+  sheet.getRange("K" + rangeStr).setFormula("=IF(B2<=300, 0, IF(B2<=500, B2*0.115, B2*0.125))");
+
+  // 3. CLOSING FEES (Logic: FC, IXD, Flex, Easy Ship, Self-Ship)
+  sheet.getRange("L" + rangeStr).setFormula("=IF(OR(C2=\"FC\",C2=\"IXD\",C2=\"Seller Flex\"),IF(B2<=300,26,IF(B2<=500,21,IF(B2<=1000,26,51))),IF(C2=\"Self-Ship\",IF(B2<=300,20,IF(B2<=500,25,IF(B2<=1000,50,100))),IF(OR(C2=\"Easy Ships\",C2=\"Easy Ship\"),IF(B2<=250,6,IF(B2<=500,21,IF(B2<=1000,51,74))),IF(B2<=300,26,IF(B2<=500,31,IF(B2<=1000,74,115))))))");
+
+  // 4. SHIPPING FEES (Regional/Local/National Tiers)
+  sheet.getRange("M" + rangeStr).setFormula("=IF(C2=\"Self-Ship\", 0, IF(D2=\"Local\", IF(J2<=0.5, 37, IF(J2<=12, 37+(CEILING(J2-0.5, 0.5)*15), 114+(CEILING(J2-12, 1)*21))), IF(D2=\"Regional\", IF(J2<=0.5, 43, IF(J2<=12, 43+(CEILING(J2-0.5, 0.5)*18), 138+(CEILING(J2-12, 1)*25))), IF(J2<=0.5, 65, IF(J2<=12, 65+(CEILING(J2-0.5, 0.5)*22), 195+(CEILING(J2-12, 1)*30))))))");
+
+  // 5. PICK & PACK + STORAGE FEES
+  sheet.getRange("N" + rangeStr).setFormula("=IF(OR(C2=\"FC\",C2=\"IXD\",C2=\"Seller Flex\"), IF(J2<=1, 17, IF(J2<=5, 17+((CEILING(J2,1)-1)*5), 37+((CEILING(J2-5,5)/5)*2))), 0)");
+  sheet.getRange("O" + rangeStr).setFormula("=IF(OR(C2=\"FC\",C2
